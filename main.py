@@ -11,30 +11,6 @@ from functools import partial
 from collections import Counter
 import itertools
 
-""" A class makes the most sense for this. """
-class CipherProcessor:
-    def __init__(self, plaintext, key, alphabet, **options):
-        self.plaintext = plaintext
-        self.key = itertools.cycle(key)
-        self.alphabet = alphabet
-        self.options = options
-
-        self._ciphertext = ""
-
-    @property
-    def ciphertext(self):
-        return self._ciphertext
-
-
-    """ devise a sequence of functions that wrap around like an onion,
-    stripping the string down to the simplified alphabet and then
-    building it back up again """
-    def add_strands(self):
-        ciphertext_arr = itertools.starmap(
-                           partial(sum_letters, alphabet=self.alphabet),
-                           zip(self.plaintext, self.key))
-        return ''.join([_ for _ in ciphertext_arr])
-
 
 def processing_main(plaintext, key, alphabet=string.ascii_letters):
     if plaintext == "":
@@ -47,8 +23,10 @@ def processing_main(plaintext, key, alphabet=string.ascii_letters):
     """ Zip the two together, use it to calculate new entry in output. """
     """ Then starmap it. """
 
-    C = CipherProcessor(plaintext, key, alphabet)
-    return C.add_strands()
+    ciphertext_arr = itertools.starmap(
+                       partial(sum_letters, alphabet=alphabet),
+                       zip(plaintext, key))
+    return ''.join([_ for _ in ciphertext_arr])
 
 
     # I can do an array of indices, and build it up.
@@ -93,7 +71,8 @@ def validate_input(input, alphabet):
 
 def sum_letters(a, b, alphabet=string.ascii_letters):
     """ Given two letters, returns their "sum".
-    mod_length means that we have more than just lowercase/uppercase. """
+    alphabet has to be something we can access via index.
+    If we enter None, we'll just get None. Error handle that later. """
 
     """ [33, 46] U [58, 64] U [91, 94] U [123, 126] : punctuation
             Some are more or less useful.
@@ -101,7 +80,10 @@ def sum_letters(a, b, alphabet=string.ascii_letters):
         [65, 90]: uppercase letters
         [97, 122]: lowercase letters
     """
-    # This way, I can break it up into different alphabets and have it work.
+
+    if a == '' or b == '':
+        return ''
+    # Probably don't need this.
     baseline = 0
     offset = baseline + (alphabet.index(a) + alphabet.index(b) - 2*baseline)%len(alphabet)
     return alphabet[offset]

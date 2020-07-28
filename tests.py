@@ -34,15 +34,15 @@ upper_cases = [
 words = [
     (("EVERYTHING IS GOOD BUT ALSO BAD", "KEY"),
         "ZCBCRRMLQ MQ QSMN FSD EJCS ZKH"),
+    (("", ""),
+        ""),
     ]
+
 """
     (("", ""),
         ""),
     (("", ""),
         ""),
-    (("", ""),
-        ""),
-]
 """
 
 
