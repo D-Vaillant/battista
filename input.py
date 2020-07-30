@@ -6,6 +6,8 @@ I'm going to implement the CharacterContainer class here.
 
 # Okay, I'm in the weeds and this is just. Not fun to implement!
 
+from main import processing_main
+import string
 import sys
 import os.path
 import argparse
@@ -44,14 +46,19 @@ parser.add_argument('--key', type=to_string, required=True)
 # Case: Normalize to lowercase.
 # New lines: Preserve
 
-# Other options
-# Newline options used before space options
+""" I'll... do this later.
+
 parser.add_argument('--strip-newlines',
         action='store_const',
         const='strip',
         dest='newlines')  # All newlines replaced with spaces
 
 spaces = parser.add_mutually_exclusive_group()
+spaces.add_argument('--strip-spaces',
+        action='store_const',
+        const='strip',
+        dest='spaces')  # Remove spaces
+
 spaces.add_argument('--preserve-spaces',
         action='store_const',
         const='preserve',
@@ -63,15 +70,15 @@ spaces.add_argument('--replace-spaces',
         dest='spaces')  # Include spaces in alphabet
 
 case = parser.add_mutually_exclusive_group()
+case.add_argument('--lower-case',
+        action='store_const',
+        const='lower',
+        dest='case')  # Normalize to uppercase
+
 case.add_argument('--upper-case',
         action='store_const',
         const='upper',
         dest='case')  # Normalize to uppercase
-
-case.add_argument('--preserve-case',
-        action='store_const',
-        const='preserve',
-        dest='case') # Keep capitalization
 
 case.add_argument('--replace-case',
         action='store_const',
@@ -79,6 +86,11 @@ case.add_argument('--replace-case',
         dest='case') # Include uppercase in alphabet
 
 punctuation = parser.add_mutually_exclusive_group()
+punctuation.add_argument('--strip-punctuation',
+        action='store_const',
+        const='strip',
+        dest='punctuation')  # Keep punctuation
+
 punctuation.add_argument('--preserve-punctuation',
         action='store_const',
         const='preserve',
@@ -88,6 +100,7 @@ punctuation.add_argument('--replace-punctuation',
         action='store_const',
         const='replace',
         dest='punctuation')  # Include punctuation in alphabet
+"""
 
 
 # Specify a string of things we want to preserve. Supersedes others.
@@ -103,25 +116,65 @@ Implementation: We'll create two arrays: one with the stripped characters,
 """
 
 class StringBuilder:
-    """ Part of this is the derivation of the alphabet.
-    I'm not sure how I'm going to do stuff with `key`. Do I
-    process it as well? Do I force the alphabet to include everything
-    that `key` has? """
-    def __init__(self, plaintext, key, **kwargs):
+    def __init__(self, plaintext, key="", **kwargs):
         # takes a dict:
         # {'spaces', 'newlines', 'case', 'punctuation', 'preserve', 'replace'}
+        # case : lower | upper | replace
+        # spaces : strip | preserve | replace
+        # newlines : preserve | strip
+        # punctuation: strip | replace | preserve
         self.plaintext = plaintext
-        self.key = key
         self.alphabet = string.ascii_lowercase
+        self.preserved = []
 
+        # Enforce keyword arguments.
+        kwargs['case'] = kwargs.get('case', 'lower')
         if kwargs['case'] == 'upper':
+            self.plaintext = self.plaintext.upper()
             self.alphabet = string.ascii_uppercase
+        elif kwargs['case'] == 'lower':
+            self.plaintext = self.plaintext.lower()
         elif kwargs['case'] == 'replace':
             self.alphabet += string.ascii_uppercase
 
-        if kwargs['spaces']: pass
+        kwargs['newlines'] = kwargs.get('newlines', 'preserve')
+        if kwargs['newlines'] == 'strip':
+            self.plaintext = self.plaintext.replace('\n', ' ')
+        else:
+            self.preserved += ['\n']
 
+        kwargs['spaces'] = kwargs.get('spaces', 'strip')
+        if kwargs['spaces'] == 'strip':
+            self.plaintext = self.plaintext.replace(' ', '')
+        elif kwargs['spaces'] == 'replace':
+            self.alphabet += ' '
+        elif kwargs['spaces'] == 'preserve':
+            self.preserved += [' ']
+
+        kwargs['punctuation'] = kwargs.get('punctuation', 'strip')
+        if kwargs['punctuation'] == 'strip':
+            pass
+        elif kwargs['punctuation'] == 'preserve':
+            self.preserved += string.punctuation
+        elif kwargs['punctuation'] == 'replace':
+            self.alphabet += string.punctuation
+
+    def __str__(self):
+        return "Plaintext: {}".format(self.plaintext)
+
+
+def restrict_key(k, alphabet):
+    return filter(lambda x: x in alphabet, k)
+    
 
 # Output: prints.
 if __name__ == "__main__":
-    print(parser.parse_args())
+    p = parser.parse_args()
+    s = StringBuilder(p.plaintext,
+                      case=p.case,
+                      spaces=p.spaces,
+                      newlines=p.newlines,
+                      punctuation=p.punctuation)
+    k = restrict_key(p.key, s.alphabet)
+    ciphertext = processing_main(s.plaintext, k, s.alphabet)
+    print(ciphertext)

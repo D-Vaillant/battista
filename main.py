@@ -25,7 +25,7 @@ def processing_main(plaintext, key, alphabet=string.ascii_letters):
 
     ciphertext_arr = itertools.starmap(
                        partial(sum_letters, alphabet=alphabet),
-                       zip(plaintext, key))
+                       zip(plaintext, itertools.cycle(key)))
     return ''.join([_ for _ in ciphertext_arr])
 
 
@@ -69,7 +69,7 @@ def validate_input(input, alphabet):
     return True
 
 
-def sum_letters(a, b, alphabet=string.ascii_letters):
+def sum_letters(a, b, alphabet=string.ascii_letters, preserve=[]):
     """ Given two letters, returns their "sum".
     alphabet has to be something we can access via index.
     If we enter None, we'll just get None. Error handle that later. """
@@ -81,9 +81,16 @@ def sum_letters(a, b, alphabet=string.ascii_letters):
         [97, 122]: lowercase letters
     """
 
-    if a == '' or b == '':
-        return ''
+    # If our character isn't in the alphabet, we either strip it or preserve it.
+    # To that end, we pass a list of characters we want to preserve.
+    # If it's in that list, keep it. Otherwise, return the empty string.
+    if a not in alphabet: 
+        return a if a in preserve else ''
     # Probably don't need this.
     baseline = 0
-    offset = baseline + (alphabet.index(a) + alphabet.index(b) - 2*baseline)%len(alphabet)
+    try:
+        offset = baseline + (alphabet.index(a) + alphabet.index(b) - 2*baseline)%len(alphabet)
+    except ValueError:  # just use a
+        return a
+
     return alphabet[offset]
