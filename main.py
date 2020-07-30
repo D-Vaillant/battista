@@ -12,7 +12,7 @@ from collections import Counter
 import itertools
 
 
-def processing_main(plaintext, key, alphabet=string.ascii_letters):
+def processing_main(plaintext, key, alphabet=string.ascii_letters, preserved=None):
     if plaintext == "":
         print("No text entered.")
         sys.exit(1)
@@ -23,8 +23,9 @@ def processing_main(plaintext, key, alphabet=string.ascii_letters):
     """ Zip the two together, use it to calculate new entry in output. """
     """ Then starmap it. """
 
+    if preserved is None: preserved = []
     ciphertext_arr = itertools.starmap(
-                       partial(sum_letters, alphabet=alphabet),
+                       partial(sum_letters, alphabet=alphabet, preserve=preserved),
                        zip(plaintext, itertools.cycle(key)))
     return ''.join([_ for _ in ciphertext_arr])
 
@@ -84,13 +85,10 @@ def sum_letters(a, b, alphabet=string.ascii_letters, preserve=[]):
     # If our character isn't in the alphabet, we either strip it or preserve it.
     # To that end, we pass a list of characters we want to preserve.
     # If it's in that list, keep it. Otherwise, return the empty string.
-    if a not in alphabet: 
-        return a if a in preserve else ''
+    if a in preserve: return a
+    if a not in alphabet: return ''
     # Probably don't need this.
     baseline = 0
-    try:
-        offset = baseline + (alphabet.index(a) + alphabet.index(b) - 2*baseline)%len(alphabet)
-    except ValueError:  # just use a
-        return a
+    offset = baseline + (alphabet.index(a) + alphabet.index(b) - 2*baseline)%len(alphabet)
 
     return alphabet[offset]

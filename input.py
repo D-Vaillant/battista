@@ -25,83 +25,6 @@ def to_string(txt, open_func=open):
     return output
 
 
-parser = argparse.ArgumentParser(description='Vigenere cipher utility.')
-parser.set_defaults(
-        newlines='preserve',
-        spaces='strip',
-        case='lower',
-        punctuation='strip')
-
-# TODO: Allow stdin by using '-' for plaintext.
-
-# Plaintext: Accepts a string or a file location. 
-parser.add_argument('plaintext', type=to_string)
-
-# Key: Accepts a string or a file location.
-parser.add_argument('--key', type=to_string, required=True)
-
-# Default options
-# Spaces: Strip
-# Punctuation: Strip
-# Case: Normalize to lowercase.
-# New lines: Preserve
-
-""" I'll... do this later.
-
-parser.add_argument('--strip-newlines',
-        action='store_const',
-        const='strip',
-        dest='newlines')  # All newlines replaced with spaces
-
-spaces = parser.add_mutually_exclusive_group()
-spaces.add_argument('--strip-spaces',
-        action='store_const',
-        const='strip',
-        dest='spaces')  # Remove spaces
-
-spaces.add_argument('--preserve-spaces',
-        action='store_const',
-        const='preserve',
-        dest='spaces')  # Keep spaces
-
-spaces.add_argument('--replace-spaces',
-        action='store_const',
-        const='replace',
-        dest='spaces')  # Include spaces in alphabet
-
-case = parser.add_mutually_exclusive_group()
-case.add_argument('--lower-case',
-        action='store_const',
-        const='lower',
-        dest='case')  # Normalize to uppercase
-
-case.add_argument('--upper-case',
-        action='store_const',
-        const='upper',
-        dest='case')  # Normalize to uppercase
-
-case.add_argument('--replace-case',
-        action='store_const',
-        const='replace',
-        dest='case') # Include uppercase in alphabet
-
-punctuation = parser.add_mutually_exclusive_group()
-punctuation.add_argument('--strip-punctuation',
-        action='store_const',
-        const='strip',
-        dest='punctuation')  # Keep punctuation
-
-punctuation.add_argument('--preserve-punctuation',
-        action='store_const',
-        const='preserve',
-        dest='punctuation')  # Keep punctuation
-
-punctuation.add_argument('--replace-punctuation',
-        action='store_const',
-        const='replace',
-        dest='punctuation')  # Include punctuation in alphabet
-"""
-
 
 # Specify a string of things we want to preserve. Supersedes others.
 # Kind of silly, but useful to have these mechanisms in place.
@@ -124,18 +47,19 @@ class StringBuilder:
         # newlines : preserve | strip
         # punctuation: strip | replace | preserve
         self.plaintext = plaintext
-        self.alphabet = string.ascii_lowercase
         self.preserved = []
 
         # Enforce keyword arguments.
         kwargs['case'] = kwargs.get('case', 'lower')
+        self.caps = kwargs['case']
         if kwargs['case'] == 'upper':
             self.plaintext = self.plaintext.upper()
             self.alphabet = string.ascii_uppercase
         elif kwargs['case'] == 'lower':
             self.plaintext = self.plaintext.lower()
+            self.alphabet = string.ascii_lowercase
         elif kwargs['case'] == 'replace':
-            self.alphabet += string.ascii_uppercase
+            self.alphabet = string.ascii_letters
 
         kwargs['newlines'] = kwargs.get('newlines', 'preserve')
         if kwargs['newlines'] == 'strip':
@@ -162,13 +86,90 @@ class StringBuilder:
     def __str__(self):
         return "Plaintext: {}".format(self.plaintext)
 
+    def encipher(self, key):
+        """ Given a key, returns the ciphertext. """
+        if self.caps == 'lower':
+            key = key.lower()
+        elif self.caps == 'upper':
+            key = key.upper()
+        key = filter(lambda x: x in self.alphabet, key)
+        return processing_main(self.plaintext, key, alphabet=self.alphabet, preserved=self.preserved)
 
 def restrict_key(k, alphabet):
     return filter(lambda x: x in alphabet, k)
     
 
+def initialize_parser():
+    parser = argparse.ArgumentParser(description='Vigenere cipher utility.')
+    parser.set_defaults(
+            newlines='preserve',
+            spaces='strip',
+            case='lower',
+            punctuation='strip')
+    # TODO: Allow stdin by using '-' for plaintext.
+    # Plaintext: Accepts a string or a file location. 
+    parser.add_argument('plaintext', type=to_string)
+    # Key: Accepts a string or a file location.
+    parser.add_argument('--key', type=to_string, required=True)
+
+    # Default options
+    # Spaces: Strip
+    # Punctuation: Strip
+    # Case: Normalize to lowercase.
+    # New lines: Preserve
+    parser.add_argument('--strip-newlines',
+            action='store_const',
+            const='strip',
+            dest='newlines')  # All newlines replaced with spaces
+    # Spaces
+    spaces = parser.add_mutually_exclusive_group()
+    spaces.add_argument('--strip-spaces',
+            action='store_const',
+            const='strip',
+            dest='spaces')  # Remove spaces
+    spaces.add_argument('--preserve-spaces',
+            action='store_const',
+            const='preserve',
+            dest='spaces')  # Keep spaces
+    spaces.add_argument('--replace-spaces',
+            action='store_const',
+            const='replace',
+            dest='spaces')  # Include spaces in alphabet
+    # Capitalization
+    case = parser.add_mutually_exclusive_group()
+    case.add_argument('--lower-case',
+            action='store_const',
+            const='lower',
+            dest='case')  # Normalize to uppercase
+    case.add_argument('--upper-case',
+            action='store_const',
+            const='upper',
+            dest='case')  # Normalize to uppercase
+    case.add_argument('--replace-case',
+            action='store_const',
+            const='replace',
+            dest='case') # Include uppercase in alphabet
+    # Punctuation
+    punctuation = parser.add_mutually_exclusive_group()
+    punctuation.add_argument('--strip-punctuation',
+            action='store_const',
+            const='strip',
+            dest='punctuation')  # Keep punctuation
+    punctuation.add_argument('--preserve-punctuation',
+            action='store_const',
+            const='preserve',
+            dest='punctuation')  # Keep punctuation
+    punctuation.add_argument('--replace-punctuation',
+            action='store_const',
+            const='replace',
+            dest='punctuation')  # Include punctuation in alphabet
+
+    return parser
+
+
 # Output: prints.
 if __name__ == "__main__":
+    parser = initialize_parser()
     p = parser.parse_args()
     s = StringBuilder(p.plaintext,
                       case=p.case,
